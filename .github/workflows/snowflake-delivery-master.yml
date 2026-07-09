@@ -1,0 +1,61 @@
+name: "Standard Tier: Automated Snowflake Delivery - Master"
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize]
+    branches:
+      - qa
+      - cicd
+      - main
+    paths:
+      - 'dcm_automation/**'
+      - 'dcm_dbt_cicd/**'
+  push:
+    branches:
+      - qa
+      - cicd
+      - main
+    paths:
+      - 'dcm_automation/**'
+      - 'dcm_dbt_cicd/**'
+
+permissions:
+  id-token: write 
+  contents: read
+
+jobs:
+  qa-parameterized-pipeline:
+    if: (github.base_ref == 'qa' && github.event_name == 'pull_request') || (github.ref_name == 'qa' && github.event_name == 'push')
+    uses: ./.github/workflows/snowflake-pipeline-engine.yml
+    with:
+      environment_tier: "qa"
+      target_database: "CICD_AUTOMATION_QA"
+      target_schema: "UTILITIES"
+      dcm_target_flag: "DCM_QA"
+      execute_phase: "${{ github.event_name == 'pull_request' && 'plan' || 'deploy' }}"
+    secrets: inherit
+  cicd-parameterized-pipeline:
+    if: (github.base_ref == 'cicd' && github.event_name == 'pull_request') || (github.ref_name == 'cicd' && github.event_name == 'push')
+    uses: ./.github/workflows/snowflake-pipeline-engine.yml
+    with:
+      environment_tier: "cicd"
+      target_database: "CICD_AUTOMATION_PROD"
+      target_schema: "UTILITIES"
+      dcm_target_flag: "DCM_PROD"
+      execute_phase: "${{ github.event_name == 'pull_request' && 'plan' || 'deploy' }}"
+    secrets: inherit
+  main-business-approval-gate:
+    if: github.base_ref == 'main' && github.event_name == 'pull_request'
+    uses: ./.github/workflows/business-email-gate-main.yml
+    secrets: inherit
+  main-parameterized-pipeline:
+    if: github.ref_name == 'main' && github.event_name == 'push'
+    needs: main-business-approval-gate
+    uses: ./.github/workflows/snowflake-pipeline-engine.yml
+    with:
+      environment_tier: "main"
+      target_database: "CICD_AUTOMATION_PROD"
+      target_schema: "UTILITIES"
+      dcm_target_flag: "DCM_PROD"
+      execute_phase: "${{ github.event_name == 'pull_request' && 'plan' || 'deploy' }}"
+    secrets: inherit
