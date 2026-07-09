@@ -1,0 +1,26 @@
+name: "Module Step: DCM Processor"
+description: "Handles isolated pipeline execution loops for Snowflake Data Cloud Manager actions"
+inputs:
+  execute_phase:
+    required: true
+  dcm_target_flag:
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Run DCM Plan Phase
+      if: inputs.execute_phase == 'plan'
+      shell: bash
+      run: |
+        echo "Running DCM infrastructure validation mapping..."
+        cd dcm_automation
+        snow dcm plan --target ${{ inputs.dcm_target_flag }} -x
+
+    - name: Run DCM Live Deploy Phase
+      if: inputs.execute_phase == 'deploy'
+      shell: bash
+      run: |
+        echo "LIVE: Processing automated DCM infrastructure deployment..."
+        cd dcm_automation
+        snow dcm deploy --target ${{ inputs.dcm_target_flag }} -x
