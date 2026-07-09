@@ -1,0 +1,52 @@
+name: "Snowflake Core: Parameterized Execution Engine"
+on:
+  workflow_call:
+    inputs:
+      environment_tier:
+        required: true
+        type: string
+      target_database:
+        required: true
+        type: string
+      target_schema:
+        required: true
+        type: string
+      dcm_target_flag:
+        required: true
+        type: string
+      execute_phase:
+        required: true
+        type: string
+
+env:
+  SNOWFLAKE_ACCOUNT: "KIPI-KIPI_PRIMARY"
+  SNOWFLAKE_ROLE: "github_cicd_demo_role"
+  SNOWFLAKE_WAREHOUSE: "github_cicd_demo_wh"
+  SNOWFLAKE_CLI_FEATURES_ENABLE_SNOWFLAKE_PROJECTS: "true"
+  SNOWFLAKE_DATABASE: "${{ inputs.target_database }}"
+  SNOWFLAKE_SCHEMA: "${{ inputs.target_schema }}"
+
+jobs:
+  orchestrate-lifecycle:
+    runs-on: ubuntu-latest
+    environment: "${{ inputs.environment_tier }}"
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Snowflake CLI Connection
+        uses: snowflakedb/snowflake-cli-action@v2.0
+        with:
+          use-oidc: true
+
+      - name: Invoke Modular DCM Processing Step
+        uses: ./.github/workflows/modules/action-dcm-engine
+        with:
+          execute_phase: "${{ inputs.execute_phase }}"
+          dcm_target_flag: "${{ inputs.dcm_target_flag }}"
+
+      - name: Invoke Modular dbt Compilation Step
+        uses: ./.github/workflows/modules/action-dbt-engine
+        with:
+          execute_phase: "${{ inputs.execute_phase }}"
+          dcm_target_flag: "${{ inputs.dcm_target_flag }}"
