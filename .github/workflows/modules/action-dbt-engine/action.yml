@@ -1,0 +1,25 @@
+name: "Module Step: dbt Transformer"
+description: "Handles isolated pipeline execution loops for composite dbt model compilation"
+inputs:
+  execute_phase:
+    required: true
+  dcm_target_flag:
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Compile and Deploy Local dbt Sandbox Environments
+      if: inputs.execute_phase == 'plan'
+      shell: bash
+      run: |
+        echo "Building test environment for dbt transformations..."
+        snow dbt deploy dbt_project_dev --source ./dcm_dbt_cicd --force -x
+
+    - name: Live Execution of Production Grade dbt Transformations
+      if: inputs.execute_phase == 'deploy'
+      shell: bash
+      run: |
+        echo "LIVE: Synchronizing and running targeted dbt project models..."
+        snow dbt deploy dbt_project_prod --source ./dcm_dbt_cicd --force -x
+        snow dbt execute -x dbt_project_prod run --target ${{ inputs.dcm_target_flag }}
