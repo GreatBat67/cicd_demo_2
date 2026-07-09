@@ -1,0 +1,65 @@
+name: "Release Gate: Business Email Verification - main"
+on:
+  workflow_call:
+
+jobs:
+  email-verification:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch Notification Email
+        run: |
+          echo "Sending Release Sign-off Verification Alert out to Stakeholder Team..."
+          echo "Target Address: ronak.b.laddha@kipi.ai"
+          echo "Subject Parameter Validation: GH_RUN_ID:${{ github.run_id }}"
+
+      - name: Poll Mailbox for Approval Sign-off
+        shell: python
+        run: |
+          import imaplib, email, time, sys
+          
+          IMAP_SERVER = "imap.gmail.com"
+          EMAIL_USER = "${{ secrets.BUSINESS_GATE_IMAP_USER }}"
+          EMAIL_PASS = "${{ secrets.BUSINESS_GATE_IMAP_PASSWORD }}"
+          RUN_ID = "${{ github.run_id }}"
+          
+          print(f"Starting asynchronous validation loop tracking Run ID identifier: [GH_RUN_ID:{RUN_ID}]")
+          timeout_limit = 900 
+          polling_interval = 30
+          elapsed = 0
+          
+          while elapsed < timeout_limit:
+              try:
+                  mail = imaplib.IMAP4_SSL(IMAP_SERVER)
+                  mail.login(EMAIL_USER, EMAIL_PASS)
+                  mail.select("inbox")
+                  
+                  status, data = mail.search(None, f'(SUBJECT "GH_RUN_ID:{RUN_ID}")')
+                  if status == "OK" and data[0]:
+                      for message_num in data[0].split():
+                          status, msg_data = mail.fetch(message_num, "(RFC822)")
+                          msg = email.message_from_bytes(msg_data[0][1])
+                          
+                          body_payload = ""
+                          if msg.is_multipart():
+                              for segment in msg.walk():
+                                  if segment.get_content_type() == "text/plain":
+                                      body_payload += segment.get_payload(decode=True).decode()
+                          else:
+                              body_payload = msg.get_payload(decode=True).decode()
+                          
+                          parsed_payload = body_payload.upper()
+                          if "APPROVED" in parsed_payload:
+                              print("Business Approval confirmation found! Releasing gate.")
+                              sys.exit(0)
+                          elif "REJECTED" in parsed_payload:
+                              print("Release explicitly REJECTED by business team.")
+                              sys.exit(1)
+                  mail.logout()
+              except Exception as error:
+                  print(f"Connection/Polling Check Event Error: {error}")
+                  
+              time.sleep(polling_interval)
+              elapsed += polling_interval
+              
+          print("Timeout limit reached without receiving valid business authorization.")
+          sys.exit(1)
