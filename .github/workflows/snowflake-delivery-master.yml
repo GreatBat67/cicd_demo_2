@@ -50,7 +50,6 @@ jobs:
     secrets: inherit
   main-parameterized-pipeline:
     if: github.ref_name == 'main' && github.event_name == 'push'
-    needs: main-business-approval-gate
     uses: ./.github/workflows/snowflake-pipeline-engine.yml
     with:
       environment_tier: "main"
