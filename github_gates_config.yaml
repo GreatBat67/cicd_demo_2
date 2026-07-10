@@ -4,10 +4,56 @@ project_name: Snowflake Variable-Tier Offering Template
 default_branch: dev
 branches:
   dev:
-    environment: dev
+    protection:
+      require_pr: false
+      required_approvals: 0
+    approvers:
+      groups: []
+      individuals: []
+    environment: null
+    environment_reviewers:
+      groups: []
+      individuals: []
   qa:
+    protection:
+      require_pr: true
+      required_approvals: 1
+    approvers:
+      groups: []
+      individuals: &id001
+      - disharaniBR
     environment: qa
+    environment_reviewers:
+      groups: []
+      individuals: *id001
+    source_branch: dev
   cicd:
+    protection:
+      require_pr: true
+      required_approvals: 1
+    approvers:
+      groups: []
+      individuals: &id002
+      - disharaniBR
     environment: cicd
+    environment_reviewers:
+      groups: []
+      individuals: *id002
+    source_branch: qa
   main:
+    protection:
+      require_pr: true
+      required_approvals: 1
+      lock_branch: true
+      restrict_pushes: true
+    approvers:
+      groups: []
+      individuals: &id003
+      - DisharaniBR
     environment: main
+    environment_reviewers:
+      groups: []
+      individuals: *id003
+    source_branch: cicd
+    locked: true
+final_branch: main
