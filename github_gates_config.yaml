@@ -1,6 +1,6 @@
 repo_name: cicd_demo_2
 owner: GreatBat67
-project_name: Snowflake Polymorphic Template Framework
+project_name: Snowflake Variable-Tier Offering Template
 default_branch: dev
 branches:
   dev:
@@ -22,7 +22,6 @@ branches:
       groups: []
       individuals: &id001
       - disharaniBR
-      - GreatBat67
     environment: qa
     environment_reviewers:
       groups: []
@@ -36,7 +35,6 @@ branches:
       groups: []
       individuals: &id002
       - disharaniBR
-      - GreatBat67
     environment: cicd
     environment_reviewers:
       groups: []
