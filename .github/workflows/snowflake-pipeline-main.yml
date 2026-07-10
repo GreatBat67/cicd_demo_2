@@ -1,0 +1,51 @@
+name: "Snowflake Component: Progression Target - main"
+on:
+  workflow_call:
+
+env:
+  SNOWFLAKE_ACCOUNT: "KIPI-KIPI_PRIMARY"
+  SNOWFLAKE_ROLE: "github_cicd_demo_role"
+  SNOWFLAKE_WAREHOUSE: "github_cicd_demo_wh"
+  SNOWFLAKE_CLI_FEATURES_ENABLE_SNOWFLAKE_PROJECTS: "true"
+  SNOWFLAKE_DATABASE: "CICD_AUTOMATION_PROD"
+  SNOWFLAKE_SCHEMA: "UTILITIES"
+
+jobs:
+  main-environment-plan:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    environment: main 
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Snowflake CLI (OIDC)
+        uses: snowflakedb/snowflake-cli-action@v2.0
+        with:
+          use-oidc: true
+      - name: Run DCM Plan Against Target
+        run: |
+          echo "Running DCM infrastructure validation mapping..."
+          cd dcm_automation
+          snow dcm plan --target DCM_PROD -x
+          cd ..
+          echo "Building test environment for dbt transformations..."
+          snow dbt deploy dbt_project_dev --source ./dcm_dbt_cicd --force -x
+
+  main-environment-deploy:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: main 
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Snowflake CLI (OIDC)
+        uses: snowflakedb/snowflake-cli-action@v2.0
+        with:
+          use-oidc: true
+      - name: Live Deploy to Database Target
+        run: |
+          echo "LIVE: Processing automated DCM infrastructure deployment..."
+          cd dcm_automation
+          snow dcm deploy --target DCM_PROD -x
+          cd ..
+          echo "LIVE: Synchronizing and running targeted dbt project models..."
+          snow dbt deploy dbt_project_prod --source ./dcm_dbt_cicd --force -x
+          snow dbt execute -x dbt_project_prod run --target DCM_PROD

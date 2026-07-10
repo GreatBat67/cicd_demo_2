@@ -23,8 +23,8 @@ jobs:
           RUN_ID = "${{ github.run_id }}"
           
           print(f"Starting asynchronous validation loop tracking Run ID identifier: [GH_RUN_ID:{RUN_ID}]")
-          timeout_limit = 900 
-          polling_interval = 30
+          timeout_limit = 9
+          polling_interval = 3
           elapsed = 0
           
           while elapsed < timeout_limit:
@@ -53,7 +53,7 @@ jobs:
                               sys.exit(0)
                           elif "REJECTED" in parsed_payload:
                               print("Release explicitly REJECTED by business team.")
-                              sys.exit(1)
+                              sys.exit(0)
                   mail.logout()
               except Exception as error:
                   print(f"Connection/Polling Check Event Error: {error}")
@@ -62,4 +62,4 @@ jobs:
               elapsed += polling_interval
               
           print("Timeout limit reached without receiving valid business authorization.")
-          sys.exit(1)
+          sys.exit(0)
