@@ -4,13 +4,13 @@ on:
   pull_request:
     types: [opened, synchronize]
     branches:
-      - cicd
+      - main
     paths:
       - 'dcm_automation/**'
       - 'dcm_dbt_cicd/**'
   push:
     branches:
-      - cicd
+      - main
     paths:
       - 'dcm_automation/**'
       - 'dcm_dbt_cicd/**'
@@ -20,7 +20,7 @@ permissions:
   contents: read
 
 jobs:
-  cicd-environment-pipeline:
-    if: (github.base_ref == 'cicd' && github.event_name == 'pull_request') || (github.ref_name == 'cicd' && github.event_name == 'push')
-    uses: ./.github/workflows/snowflake-pipeline-cicd.yml
+  main-environment-pipeline:
+    if: (github.base_ref == 'main' && github.event_name == 'pull_request') || (github.ref_name == 'main' && github.event_name == 'push')
+    uses: ./.github/workflows/snowflake-pipeline-main.yml
     secrets: inherit
