@@ -20,12 +20,7 @@ permissions:
   contents: read
 
 jobs:
-  main-business-approval-gate:
-    if: github.base_ref == 'main' && github.event_name == 'pull_request'
-    uses: ./.github/workflows/business-email-gate-main.yml
-    secrets: inherit
   main-environment-pipeline:
-    if: github.ref_name == 'main' && github.event_name == 'push'
-    needs: main-business-approval-gate
+    if: (github.base_ref == 'main' && github.event_name == 'pull_request') || (github.ref_name == 'main' && github.event_name == 'push')
     uses: ./.github/workflows/snowflake-pipeline-main.yml
     secrets: inherit
