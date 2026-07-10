@@ -1,0 +1,65 @@
+name: "Manual One-Time Project Initialization"
+on:
+  workflow_dispatch:
+    inputs:
+      environment_tier:
+        description: "Target GitHub Environment Context (must match Snowflake configuration)"
+        required: true
+        type: choice
+        options:
+          - qa
+          - cicd
+          - main
+        default: "qa"
+      snowflake_account:
+        description: "Snowflake Account Locator"
+        required: true
+        default: "KIPI-KIPI_PRIMARY"
+      snowflake_role:
+        description: "Snowflake Role"
+        required: true
+        default: "github_cicd_demo_role"
+      snowflake_warehouse:
+        description: "Snowflake Warehouse"
+        required: true
+        default: "github_cicd_demo_wh"
+      target_database:
+        description: "Target Database to Bootstrap"
+        required: true
+        default: "CICD_AUTOMATION_QA"
+      target_schema:
+        description: "Target Schema"
+        required: true
+        default: "UTILITIES"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  initialize-project:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment_tier }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Snowflake CLI (OIDC)
+        uses: snowflakedb/snowflake-cli-action@v2.0
+        with:
+          use-oidc: true
+
+      - name: Install Runtime Dependencies
+        run: |
+          pip install snowflake-snowpark-python snowflake-connector-python PyYAML
+
+      - name: Execute Main Project Initializer
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ github.event.inputs.snowflake_account }}
+          SNOWFLAKE_ROLE: ${{ github.event.inputs.snowflake_role }}
+          SNOWFLAKE_WAREHOUSE: ${{ github.event.inputs.snowflake_warehouse }}
+          SNOWFLAKE_DATABASE: ${{ github.event.inputs.target_database }}
+          SNOWFLAKE_SCHEMA: ${{ github.event.inputs.target_schema }}
+          SNOWFLAKE_CLI_FEATURES_ENABLE_SNOWFLAKE_PROJECTS: "true"
+        run: |
+          python DCM_Scripts/initialise_project.py
